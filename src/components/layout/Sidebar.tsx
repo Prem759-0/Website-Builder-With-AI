@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
-import { LayoutGrid, Plus, Search, Settings, Folder, User, LogOut, ChevronLeft, ChevronRight, Sparkles, Command } from 'lucide-react';
+import { 
+  LayoutGrid, Plus, Search, Settings, 
+  Folder, User, LogOut, ChevronLeft, 
+  ChevronRight, Sparkles, Command, 
+  FileCode, Globe 
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -26,12 +31,20 @@ export function Sidebar({
   setIsCollapsed
 }: SidebarProps) {
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<'projects' | 'files'>('projects');
   const { user } = useUser();
   const { signOut } = useClerk();
 
   const filteredProjects = projects.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const mockFiles = [
+    { name: 'index.html', icon: <FileCode size={16} className="text-orange-400" /> },
+    { name: 'styles.css', icon: <FileCode size={16} className="text-blue-400" /> },
+    { name: 'script.js', icon: <FileCode size={16} className="text-yellow-400" /> },
+    { name: 'assets/', icon: <Folder size={16} className="text-purple-400" /> },
+  ];
 
   return (
     <motion.aside
@@ -40,6 +53,7 @@ export function Sidebar({
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className="h-screen bg-[#0B0F19] border-r border-white/5 flex flex-col relative z-30 overflow-hidden"
     >
+      {/* Sidebar Header */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-white/5 bg-[#0B0F19]">
         <AnimatePresence mode="wait">
           {!isCollapsed ? (
@@ -76,13 +90,14 @@ export function Sidebar({
             variant="ghost" 
             size="icon" 
             onClick={() => setIsCollapsed(true)}
-            className="h-8 w-8 hover:bg-white/5 text-gray-500 hover:text-white"
+            className="h-8 w-8 hover:bg-white/5 text-gray-500 hover:text-white transition-colors"
           >
             <ChevronLeft size={16} />
           </Button>
         )}
       </div>
 
+      {/* Top Actions & Tabs */}
       <div className="p-4 space-y-4">
         {!isCollapsed ? (
           <motion.div 
@@ -98,18 +113,40 @@ export function Sidebar({
               New Website
             </Button>
 
-            <div className="relative group">
-              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
-              <Input 
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Find project..." 
-                className="pl-10 bg-white/5 border-white/5 h-10 text-sm focus-visible:ring-blue-500/40 rounded-xl placeholder:text-gray-600"
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden group-focus-within:flex items-center gap-1">
-                 <kbd className="text-[10px] bg-white/10 px-1 rounded text-gray-400">ESC</kbd>
-              </div>
+            <div className="flex p-1 bg-white/[0.03] rounded-xl border border-white/5 shadow-inner">
+               <button 
+                 onClick={() => setActiveTab('projects')}
+                 className={cn(
+                   "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider",
+                   activeTab === 'projects' ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"
+                 )}
+               >
+                 <Globe size={13} />
+                 Projects
+               </button>
+               <button 
+                 onClick={() => setActiveTab('files')}
+                 className={cn(
+                   "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider",
+                   activeTab === 'files' ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"
+                 )}
+               >
+                 <Folder size={13} />
+                 Files
+               </button>
             </div>
+
+            {activeTab === 'projects' && (
+              <div className="relative group">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
+                <Input 
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Find project..." 
+                  className="pl-10 bg-white/5 border-white/5 h-10 text-sm focus-visible:ring-blue-500/40 rounded-xl placeholder:text-gray-600"
+                />
+              </div>
+            )}
           </motion.div>
         ) : (
           <div className="flex flex-col items-center gap-4">
@@ -132,47 +169,70 @@ export function Sidebar({
         )}
       </div>
 
-      <div className="flex-1 px-3 pb-4">
-        <div className="px-3 mb-3 flex items-center justify-between">
-           {!isCollapsed && <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">Recent Projects</span>}
-           {!isCollapsed && <span className="text-[10px] text-gray-600">{filteredProjects.length}</span>}
-        </div>
-        <ScrollArea className="h-[calc(100vh-320px)]">
+      {/* Main Content Area (Projects or Files) */}
+      <div className="flex-1 px-3 pb-4 overflow-hidden">
+        <ScrollArea className="h-full">
           <div className="space-y-1 pr-3">
-            {filteredProjects.map((project) => (
-              <button
-                key={project._id}
-                onClick={() => onSelectProject(project)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group relative overflow-hidden",
-                  currentProject?._id === project._id 
-                    ? "bg-blue-600/10 text-blue-400 font-medium" 
-                    : "text-gray-400 hover:bg-white/[0.03] hover:text-gray-200"
+            {activeTab === 'projects' ? (
+              <>
+                {!isCollapsed && (
+                  <div className="px-3 mb-3 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">Recent Projects</span>
+                    <span className="text-[10px] text-gray-600">{filteredProjects.length}</span>
+                  </div>
                 )}
-              >
-                {currentProject?._id === project._id && (
-                  <motion.div 
-                    layoutId="active-bg"
-                    className="absolute left-0 w-1 h-5 bg-blue-500 rounded-full"
-                  />
-                )}
-                <Folder size={18} className={cn(
-                  "transition-colors",
-                  currentProject?._id === project._id ? "text-blue-400" : "text-gray-500 group-hover:text-gray-300"
-                )} />
-                {!isCollapsed && <span className="truncate flex-1 text-left">{project.name}</span>}
-              </button>
-            ))}
-            {filteredProjects.length === 0 && !isCollapsed && (
-              <div className="px-4 py-8 text-center">
-                <p className="text-xs text-gray-600">No projects found</p>
+                <div className="space-y-1">
+                  {filteredProjects.map((project) => (
+                    <button
+                      key={project._id}
+                      onClick={() => onSelectProject(project)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group relative overflow-hidden",
+                        currentProject?._id === project._id 
+                          ? "bg-blue-600/10 text-blue-400 font-medium" 
+                          : "text-gray-400 hover:bg-white/[0.03] hover:text-gray-200"
+                      )}
+                    >
+                      {currentProject?._id === project._id && (
+                        <motion.div 
+                          layoutId="active-bg"
+                          className="absolute left-0 w-1 h-5 bg-blue-500 rounded-full"
+                        />
+                      )}
+                      <Folder size={18} className={cn(
+                        "transition-colors",
+                        currentProject?._id === project._id ? "text-blue-400" : "text-gray-500 group-hover:text-gray-300"
+                      )} />
+                      {!isCollapsed && <span className="truncate flex-1 text-left">{project.name}</span>}
+                    </button>
+                  ))}
+                  {filteredProjects.length === 0 && !isCollapsed && (
+                    <div className="px-4 py-8 text-center">
+                      <p className="text-xs text-gray-600 font-medium">No projects found</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="space-y-0.5">
+                {!isCollapsed && <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-3 pl-3">Project Files</p>}
+                {mockFiles.map((file) => (
+                  <button
+                    key={file.name}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-white/5 hover:text-gray-200 transition-all group"
+                  >
+                    {file.icon}
+                    {!isCollapsed && <span className="truncate flex-1 text-left text-xs font-medium">{file.name}</span>}
+                  </button>
+                ))}
               </div>
             )}
           </div>
         </ScrollArea>
       </div>
 
-      <div className="mt-auto p-4 border-t border-white/5 bg-[#0B0F19]/50 backdrop-blur-md">
+      {/* Sidebar Footer */}
+      <div className="mt-auto p-4 border-t border-white/5 bg-[#0B0F19]/50 backdrop-blur-md shrink-0">
         {!isCollapsed && (
           <div className="mb-4 bg-white/[0.03] rounded-2xl p-3 border border-white/5 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-white/5">
@@ -180,7 +240,7 @@ export function Sidebar({
             </div>
             <div className="flex-1 min-w-0">
                <p className="text-[11px] font-bold text-white uppercase tracking-tight">Pro Plan</p>
-               <p className="text-[10px] text-gray-500">Unlimited AI generations</p>
+               <p className="text-[10px] text-gray-500 font-medium">Unlimited AI generations</p>
             </div>
           </div>
         )}
@@ -193,7 +253,7 @@ export function Sidebar({
             afterSignOutUrl="/"
             appearance={{
               elements: {
-                userButtonAvatarBox: "w-9 h-9",
+                userButtonAvatarBox: "w-9 h-9 border border-white/10",
                 userButtonTrigger: "focus:shadow-none"
               }
             }}
@@ -201,7 +261,7 @@ export function Sidebar({
           {!isCollapsed && (
             <div className="flex-1 min-w-0 pr-2">
               <p className="text-xs font-semibold text-white truncate">{user?.fullName || 'User'}</p>
-              <p className="text-[10px] text-gray-500 truncate">{user?.primaryEmailAddress?.emailAddress}</p>
+              <p className="text-[10px] text-gray-500 font-medium truncate">{user?.primaryEmailAddress?.emailAddress}</p>
             </div>
           )}
           {!isCollapsed && (
@@ -217,6 +277,7 @@ export function Sidebar({
         </div>
       </div>
 
+      {/* Collapse/Expand Toggle */}
       {isCollapsed && (
         <button 
           onClick={() => setIsCollapsed(false)}
@@ -228,4 +289,3 @@ export function Sidebar({
     </motion.aside>
   );
 }
-

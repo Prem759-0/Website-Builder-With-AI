@@ -143,7 +143,7 @@ app.post("/api/chat", async (req, res) => {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
   if (!apiKey) {
-    return res.status(401).json({ error: "OpenRouter API Key not configured. Please add it to your secrets." });
+    return res.status(401).json({ error: "OpenRouter API Key not configured." });
   }
 
   try {
@@ -180,7 +180,64 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// Stripe Checkout
+// AI Site Generation Engine (CORE)
+app.post("/api/generate-site", async (req, res) => {
+  const { prompt, currentCode } = req.body;
+  const apiKey = process.env.OPENROUTER_API_KEY;
+
+  if (!apiKey) {
+    return res.status(401).json({ error: "OpenRouter API Key not configured." });
+  }
+
+  const systemInstruction = `You are a world-class web builder AI like bolt.new or Lovable.
+  Generate a professional, fully functional website based on the user's request.
+  Use Tailwind CSS (via CDN) for styling. Ensure the code is responsive and high-quality.
+  IMPORTANT: Return ONLY a valid JSON object in this format:
+  {
+    "title": "Project Title",
+    "description": "Short description",
+    "html": "<!DOCTYPE html><html>...</html>",
+    "css": "/* styles */",
+    "js": "// scripts"
+  }
+  Do not include markdown triple backticks around the JSON.
+  Ensure the HTML contains the Tailwind CSS CDN script and a favicon link.`;
+
+  try {
+    const response = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model: "openai/gpt-3.5-turbo", // Fallback to compatible model or user's requested free model
+        messages: [
+          { role: "system", content: systemInstruction },
+          { role: "user", content: `Prompt: ${prompt}\n\nCurrent Code (if any): ${currentCode || "None"}` }
+        ],
+        response_format: { type: "json_object" }
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        }
+      }
+    );
+
+    const content = response.data.choices[0].message.content;
+    const generated = typeof content === 'string' ? JSON.parse(content) : content;
+    res.json(generated);
+  } catch (error: any) {
+    console.error("Generation Error:", error.response?.data || error.message);
+    res.status(500).json({ error: "Failed to generate website" });
+  }
+});
+
+// Export API
+app.post("/api/export", async (req, res) => {
+  const { html, css, js, name } = req.body;
+  // This route acts as a metadata handler if needed, 
+  // but zipping is best handled in the client for instant feedback.
+  res.json({ success: true, message: "Ready for export" });
+});
 app.post("/api/checkout", async (req, res) => {
   if (!stripe) return res.status(500).json({ error: "Stripe not configured" });
   const { priceId, successUrl, cancelUrl } = req.body;

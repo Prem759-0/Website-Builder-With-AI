@@ -105,5 +105,29 @@ export function useChat() {
     }
   }, []); // Dependencies empty because we use functional updates and local variable
 
-  return { messages, sendMessage, isLoading, setMessages };
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const generateSite = useCallback(async (prompt: string, currentCode: string) => {
+    setIsGenerating(true);
+    try {
+      const res = await fetch('/api/generate-site', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, currentCode })
+      });
+      
+      if (!res.ok) throw new Error('Failed to generate site');
+      
+      const data = await res.json();
+      return data;
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to generate site. Check your connection.');
+      return null;
+    } finally {
+      setIsGenerating(false);
+    }
+  }, []);
+
+  return { messages, sendMessage, generateSite, isLoading, isGenerating, setMessages };
 }

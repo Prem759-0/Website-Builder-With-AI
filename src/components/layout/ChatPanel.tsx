@@ -37,6 +37,13 @@ export function ChatPanel({ messages, onSendMessage, isLoading }: ChatPanelProps
     setInput('');
   };
 
+  const suggestions = [
+    { label: "SaaS Landing Page", prompt: "Create a modern SaaS landing page for a fitness app" },
+    { label: "Portfolio", prompt: "Build a sleek personal portfolio for a designer" },
+    { label: "E-commerce", prompt: "Create a clean e-commerce homepage for a coffee brand" },
+    { label: "Startup", prompt: "Generate a vibrant startup website with pricing and features" }
+  ];
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success('Copied to clipboard');
@@ -87,13 +94,13 @@ export function ChatPanel({ messages, onSendMessage, isLoading }: ChatPanelProps
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-2 max-w-sm">
-                 {["Gym landing page", "SaaS dashboard", "Personal portfolio", "Link in bio"].map((suggestion) => (
+                 {suggestions.map((s) => (
                    <button 
-                     key={suggestion}
-                     onClick={() => setInput(suggestion)}
+                     key={s.label}
+                     onClick={() => onSendMessage(s.prompt)}
                      className="px-4 py-2 rounded-xl bg-white/[0.03] border border-white/5 text-xs text-gray-400 hover:bg-white/5 hover:text-white transition-all hover:border-white/10"
                    >
-                     {suggestion}
+                     {s.label}
                    </button>
                  ))}
               </div>

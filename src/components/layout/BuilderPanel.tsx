@@ -1,28 +1,44 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { Eye, Code, Layout, Smartphone, Tablet, Monitor, RotateCcw, Share2, Download, Maximize2, Zap, ExternalLink, Rocket } from 'lucide-react';
+import { 
+  Eye, Code, Layout, Smartphone, Tablet, 
+  Monitor, RotateCcw, Share2, Download, 
+  Maximize2, Zap, ExternalLink, Rocket, 
+  Sparkles, Copy, FileCode 
+} from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Device, ViewMode } from '@/types';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
+import JSZip from 'jszip';
 
 const Editor = lazy(() => import('@monaco-editor/react').then(mod => ({ default: mod.Editor })));
+
+const tailwindClasses = [
+  'flex', 'flex-col', 'flex-row', 'items-center', 'justify-center', 'gap-2', 'gap-4',
+  'p-4', 'p-8', 'm-4', 'bg-white', 'bg-black', 'text-white', 'text-black', 'rounded-xl',
+  'shadow-lg', 'border', 'border-gray-200', 'font-sans', 'font-mono', 'text-sm', 'text-lg',
+  'grid', 'grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'w-full', 'h-full', 'min-h-screen',
+  'hover:bg-blue-600', 'transition-all', 'duration-300', 'ease-in-out', 'animate-pulse'
+];
 
 interface BuilderPanelProps {
   code: string;
   onCodeChange: (newCode: string) => void;
+  onImprove?: () => void;
 }
 
-export function BuilderPanel({ code, onCodeChange }: BuilderPanelProps) {
+export function BuilderPanel({ code, onCodeChange, onImprove }: BuilderPanelProps) {
   const [device, setDevice] = useState<Device>('desktop');
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
   const [iframeKey, setIframeKey] = useState(0);
 
   const containerSizes = {
     desktop: 'w-full h-full',
-    tablet: 'w-[768px] h-[1024px] max-h-[85vh]',
-    mobile: 'w-[375px] h-[667px] max-h-[85vh]',
+    tablet: 'w-[768px] h-100% max-h-[85vh]',
+    mobile: 'w-[375px] h-100% max-h-[85vh]',
   };
 
   const handleRefresh = () => {
@@ -30,10 +46,83 @@ export function BuilderPanel({ code, onCodeChange }: BuilderPanelProps) {
   };
 
   const openInNewTab = () => {
-    const blob = new Blob([code], { type: 'text/html' });
+    const blob = new Blob([previewCode], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
   };
+
+  const handleDownload = async () => {
+    try {
+      const zip = new JSZip();
+      zip.file("index.html", previewCode);
+      zip.file("README.md", "# Lumina AI Project\nGenerated Website.");
+      
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "lumina-website.zip";
+      a.click();
+      toast.success('Project downloaded as ZIP');
+    } catch (e) {
+      toast.error('Failed to export project');
+    }
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    toast.success('Code copied to clipboard');
+  };
+
+  const handleEditorWillMount = (monaco: any) => {
+    monaco.languages.registerCompletionItemProvider('html', {
+      provideCompletionItems: (model: any, position: any) => {
+        const textUntilPosition = model.getValueInRange({
+          startLineNumber: 1,
+          startColumn: 1,
+          endLineNumber: position.lineNumber,
+          endColumn: position.column
+        });
+        
+        if (textUntilPosition.match(/class=["'][^"']*$/)) {
+          const suggestions = tailwindClasses.map(cls => ({
+            label: cls,
+            kind: monaco.languages.CompletionItemKind.Value,
+            insertText: cls,
+            detail: 'Tailwind Class'
+          }));
+          return { suggestions };
+        }
+        return { suggestions: [] };
+      }
+    });
+
+    // Formatting shortcut
+    monaco.languages.registerDocumentFormattingEditProvider('html', {
+      provideDocumentFormattingEdits: (model: any) => {
+         // Placeholder for real formatting
+         return [];
+      }
+    });
+  };
+
+  const previewCode = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lumina Generated Website</title>
+  <link rel="icon" href="https://ais.studio/favicon.ico">
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  ${code}
+</body>
+</html>`;
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#0B0F19] overflow-hidden relative z-0">
@@ -91,28 +180,58 @@ export function BuilderPanel({ code, onCodeChange }: BuilderPanelProps) {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden lg:flex items-center gap-1 mr-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+          <div className="hidden xl:flex items-center gap-1 mr-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
             <Zap size={10} className="text-blue-500" />
             Auto-Saving
           </div>
-          <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-9 w-9 text-gray-500 hover:text-white rounded-xl hover:bg-white/5 transition-all">
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onImprove}
+            className="h-9 px-3 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl gap-2 font-bold text-xs"
+          >
+            <Sparkles size={14} />
+            <span className="hidden lg:inline">Improve Design</span>
+          </Button>
+
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleCopy}
+            className="h-9 w-9 text-gray-500 hover:text-white rounded-xl hover:bg-white/5 transition-all"
+            title="Copy Code"
+          >
+            <Copy size={16} />
+          </Button>
+
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleRefresh} 
+            className="h-9 w-9 text-gray-500 hover:text-white rounded-xl hover:bg-white/5 transition-all"
+            title="Refresh Preview"
+          >
             <RotateCcw size={16} />
           </Button>
+          
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={openInNewTab}
             className="h-9 w-9 text-gray-500 hover:text-white rounded-xl hover:bg-white/5 transition-all"
+            title="Open in New Tab"
           >
             <ExternalLink size={16} />
           </Button>
-          <Button variant="outline" size="sm" className="h-9 border-white/10 bg-white/[0.03] hover:bg-white/5 rounded-xl gap-2 font-bold text-xs" onClick={() => toast.info("Share functionality coming soon!")}>
-            <Share2 size={14} />
-            Share
-          </Button>
-          <Button size="sm" className="h-9 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl gap-2 font-bold text-xs shadow-lg shadow-blue-500/10 transition-all active:scale-95">
-             <Rocket size={14} />
-             Deploy
+
+          <Button 
+            size="sm" 
+            onClick={handleDownload}
+            className="h-9 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl gap-2 font-bold text-xs shadow-lg shadow-blue-500/10 transition-all active:scale-95"
+          >
+             <Download size={14} />
+             Download ZIP
           </Button>
         </div>
       </div>
@@ -136,7 +255,10 @@ export function BuilderPanel({ code, onCodeChange }: BuilderPanelProps) {
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="h-full border-r border-white/5 bg-[#1e1e1e]/60 backdrop-blur-xl relative group z-10"
+                className={cn(
+                  "h-full border-r border-white/5 bg-[#1e1e1e]/60 backdrop-blur-xl relative group z-10",
+                  viewMode === 'code' ? "w-full" : ""
+                )}
               >
                 <div className="absolute top-4 right-4 z-20 px-2.5 py-1 rounded-lg bg-black/40 backdrop-blur-md border border-white/5 text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                    HTML / Tailwind
@@ -147,6 +269,7 @@ export function BuilderPanel({ code, onCodeChange }: BuilderPanelProps) {
                     defaultLanguage="html"
                     theme="vs-dark"
                     value={code}
+                    onMount={(editor, monaco) => handleEditorWillMount(monaco)}
                     onChange={(val) => onCodeChange(val || '')}
                     options={{
                       minimap: { enabled: false },
@@ -162,6 +285,8 @@ export function BuilderPanel({ code, onCodeChange }: BuilderPanelProps) {
                       smoothScrolling: true,
                       contextmenu: false,
                       wordWrap: 'on',
+                      formatOnPaste: true,
+                      formatOnType: true
                     }}
                   />
                 </Suspense>
@@ -174,7 +299,6 @@ export function BuilderPanel({ code, onCodeChange }: BuilderPanelProps) {
                 "h-full flex items-center justify-center transition-all duration-700 bg-[#0B0F19] relative overflow-hidden z-0",
                 device === 'desktop' ? "p-0" : "p-12"
               )}>
-                {/* Decorative Backdrop */}
                 <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 blur-[120px] rounded-full" />
                    <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 blur-[120px] rounded-full" />
@@ -185,14 +309,13 @@ export function BuilderPanel({ code, onCodeChange }: BuilderPanelProps) {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={cn(
-                    "bg-white rounded-2xl shadow-[0_0_100px_rgba(0,0,0,0.5)] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] relative z-10",
-                    containerSizes[device],
+                    "bg-white rounded-2xl shadow-[0_0_100px_rgba(0,0,0,0.5)] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] relative z-10 overflow-hidden",
+                    device === 'desktop' ? "w-full h-full" : containerSizes[device],
                     device !== 'desktop' && "ring-12 ring-[#111827] ring-inset"
                   )}
                 >
-                  {/* Device Frame Extras (Camera/Speaker hole on mobile) */}
                   {device === 'mobile' && (
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-6 bg-[#111827] rounded-b-2xl z-20 flex items-center justify-center gap-1.5 p-1">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-6 bg-[#111827] rounded-b-2xl z-40 flex items-center justify-center gap-1.5 p-1">
                       <div className="w-1.5 h-1.5 rounded-full bg-white/[0.05]" />
                       <div className="w-8 h-1 rounded-full bg-white/[0.05]" />
                     </div>
@@ -200,7 +323,7 @@ export function BuilderPanel({ code, onCodeChange }: BuilderPanelProps) {
 
                   <iframe
                     key={iframeKey}
-                    srcDoc={code}
+                    srcDoc={previewCode}
                     className="w-full h-full border-none rounded-[inherit]"
                     title="Lumina Preview"
                     referrerPolicy="no-referrer"
@@ -208,7 +331,6 @@ export function BuilderPanel({ code, onCodeChange }: BuilderPanelProps) {
                   />
                 </motion.div>
 
-                {/* Status Overlay */}
                 <div className="absolute bottom-6 right-6 flex items-center gap-4 text-[10px] font-bold text-gray-600 uppercase tracking-widest z-10">
                    <div className="flex items-center gap-1.5">
                       <Smartphone size={10} />
@@ -228,5 +350,3 @@ export function BuilderPanel({ code, onCodeChange }: BuilderPanelProps) {
     </div>
   );
 }
-import { toast } from 'sonner';
-

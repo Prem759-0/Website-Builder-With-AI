@@ -21,11 +21,28 @@ export default function Dashboard() {
   const [mode, setMode] = useState<'chat' | 'structure'>('chat');
   const [code, setCode] = useState('<!-- Describe your website in the chat to start generating! -->\n<div style="height: 100vh; display: flex; align-items: center; justify-center; background: #0B0F19; color: white; font-family: sans-serif; text-align: center;">\n  <div>\n    <h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 1rem;">Ready to Build</h1>\n    <p style="color: #94a3b8;">Start a conversation with Lumina AI to generate your site.</p>\n  </div>\n</div>');
   
-  const { messages, sendMessage, isLoading } = useChat();
+  const { messages, sendMessage, generateSite, isLoading, isGenerating } = useChat();
 
   const handleSendMessage = useCallback(async (msg: string) => {
+    // If it looks like a design request, use the generation engine
+    if (msg.toLowerCase().includes('create') || msg.toLowerCase().includes('build') || msg.toLowerCase().includes('generate')) {
+      toast.loading('Generating your website...');
+      const siteData = await generateSite(msg, code);
+      if (siteData && siteData.html) {
+        setCode(siteData.html);
+        if (currentProject) {
+          updateProject(currentProject._id, { code: siteData.html, name: siteData.title || currentProject.name });
+        }
+        toast.dismiss();
+        toast.success('Website generated!');
+      } else {
+        toast.dismiss();
+      }
+      return;
+    }
+
+    // Otherwise, normal chat logic
     const aiContent = await sendMessage(msg, code);
-    
     if (aiContent) {
       const codeMatch = aiContent.match(/```html\n([\s\S]*?)```/);
       if (codeMatch && codeMatch[1]) {
@@ -36,7 +53,13 @@ export default function Dashboard() {
         }
       }
     }
-  }, [sendMessage, code, currentProject]);
+  }, [sendMessage, generateSite, code, currentProject]);
+
+  const handleImproveDesign = useCallback(async () => {
+    if (!currentProject) return;
+    const prompt = "Improve the overall UI/UX of this website. Make it more professional, modern, and high-converting. Use better typography, spacing, and micro-interactions with Tailwind CSS.";
+    handleSendMessage(prompt);
+  }, [currentProject, handleSendMessage]);
 
   const loadProjects = useCallback(async () => {
     if (!user) return;
@@ -178,6 +201,7 @@ export default function Dashboard() {
                  updateProject(currentProject._id, { code: newCode, name: currentProject.name });
               }
             }} 
+            onImprove={handleImproveDesign}
           />
         </div>
       </main>
