@@ -13,10 +13,13 @@ export function useChat() {
   const sendMessage = useCallback(async (content: string, currentCode: string) => {
     setIsLoading(true);
     const userMessage: Message = { role: 'user', content };
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
+    let currentMessages: Message[] = [];
+    
+    setMessages(prev => {
+      currentMessages = [...prev, userMessage];
+      return currentMessages;
+    });
 
-    // Prompt for the AI
     const systemInstruction = `You are a web builder assistant. The user wants to modify their website. 
     Current website code:
     \`\`\`html
@@ -27,7 +30,7 @@ export function useChat() {
 
     try {
       // First attempt: OpenRouter via backend
-      const response = await chatApi.send(updatedMessages.map(m => ({
+      const response = await chatApi.send(currentMessages.map(m => ({
         role: m.role,
         content: m.role === 'user' ? `${systemInstruction}\n\nUser Request: ${m.content}` : m.content
       })));
@@ -50,12 +53,14 @@ export function useChat() {
             if (line.startsWith('data: ')) {
               try {
                 const data = JSON.parse(line.slice(6));
-                const delta = data.choices[0].delta.content;
+                const delta = data.choices[0].delta?.content;
                 if (delta) {
                   assistantContent += delta;
                   setMessages(prev => {
                     const newMsgs = [...prev];
-                    newMsgs[newMsgs.length - 1].content = assistantContent;
+                    if (newMsgs.length > 0) {
+                      newMsgs[newMsgs.length - 1].content = assistantContent;
+                    }
                     return newMsgs;
                   });
                 }
@@ -65,25 +70,13 @@ export function useChat() {
         }
         return assistantContent;
       } else {
-        // Fallback: Use Gemini directly from frontend
-        console.warn("OpenRouter failed or not configured. Falling back to Gemini.");
-        
-        const geminiMessages = updatedMessages.map(m => ({
-           role: m.role === 'user' ? 'user' : 'model',
-           parts: [{ text: m.role === 'user' ? (m === updatedMessages[updatedMessages.length - 1] ? `${systemInstruction}\n\nUser Request: ${m.content}` : m.content) : m.content }]
-        }));
-
+        // Fallback: Gemini
         const chat = ai.chats.create({
           model: "gemini-3-flash-preview",
-          config: {
-            systemInstruction
-          }
+          config: { systemInstruction }
         });
 
-        // Use streaming for Gemini
-        const streamResponse = await chat.sendMessageStream({ 
-          message: content 
-        });
+        const streamResponse = await chat.sendMessageStream({ message: content });
 
         let assistantContent = '';
         setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
@@ -94,7 +87,9 @@ export function useChat() {
             assistantContent += text;
             setMessages(prev => {
               const newMsgs = [...prev];
-              newMsgs[newMsgs.length - 1].content = assistantContent;
+              if (newMsgs.length > 0) {
+                newMsgs[newMsgs.length - 1].content = assistantContent;
+              }
               return newMsgs;
             });
           }
@@ -104,11 +99,11 @@ export function useChat() {
     } catch (error) {
       console.error('Chat Error:', error);
       toast.error('AI error. Try checking your API connection.');
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. If you are using OpenRouter, please ensure your API key is correct.' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error.' }]);
     } finally {
       setIsLoading(false);
     }
-  }, [messages]);
+  }, []); // Dependencies empty because we use functional updates and local variable
 
   return { messages, sendMessage, isLoading, setMessages };
 }

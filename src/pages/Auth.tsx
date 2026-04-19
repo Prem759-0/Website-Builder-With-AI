@@ -1,60 +1,112 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { LayoutGrid, Mail, Github } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { SignIn, SignUp } from '@clerk/clerk-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { LayoutGrid, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function Auth() {
-  const navigate = useNavigate();
-
   return (
-    <div className="min-h-screen bg-[#0B0F19] flex items-center justify-center p-6 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent)]">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <div className="w-12 h-12 bg-blue-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-blue-500/20 mb-4">
-            <LayoutGrid size={24} className="text-white" />
+    <div className="min-h-screen bg-[#0B0F19] flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Background Glows */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 blur-[120px] rounded-full"></div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md relative z-10"
+      >
+        <div className="text-center mb-8">
+          <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl mx-auto flex items-center justify-center shadow-xl shadow-blue-500/20 mb-6 group cursor-default">
+            <LayoutGrid size={28} className="text-white group-hover:scale-110 transition-transform" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
-          <p className="text-muted-foreground">Sign in to your Lumina account</p>
+          <h1 className="text-4xl font-black mb-2 tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400">
+            Lumina AI
+          </h1>
+          <p className="text-muted-foreground flex items-center justify-center gap-2">
+            <Sparkles size={16} className="text-blue-400" />
+            Build the future in seconds
+          </p>
         </div>
 
-        <div className="space-y-4">
-          <Button className="w-full h-12 bg-white text-black hover:bg-gray-200" onClick={() => navigate('/dashboard')}>
-            <Github className="mr-2" size={20} />
-            Continue with GitHub
-          </Button>
-          <Button variant="outline" className="w-full h-12 border-white/10 hover:bg-white/5" onClick={() => navigate('/dashboard')}>
-            <Mail className="mr-2" size={20} />
-            Continue with Google
-          </Button>
-          
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10"></div>
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-2 shadow-2xl">
+          <Tabs defaultValue="signin" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-transparent p-1 mb-2">
+              <TabsTrigger 
+                value="signin" 
+                className="rounded-2xl data-[state=active]:bg-white/10 data-[state=active]:text-white transition-all py-2.5"
+              >
+                Sign In
+              </TabsTrigger>
+              <TabsTrigger 
+                value="signup"
+                className="rounded-2xl data-[state=active]:bg-white/10 data-[state=active]:text-white transition-all py-2.5"
+              >
+                Sign Up
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="p-4">
+              <TabsContent value="signin" className="mt-0 outline-none">
+                <SignIn 
+                  appearance={{
+                    elements: {
+                      rootBox: "w-full",
+                      card: "bg-transparent border-none shadow-none p-0",
+                      headerTitle: "hidden",
+                      headerSubtitle: "hidden",
+                      socialButtonsBlockButton: "bg-white/5 border-white/10 text-white hover:bg-white/10 transition-colors",
+                      socialButtonsBlockButtonText: "text-white font-medium",
+                      dividerLine: "bg-white/10",
+                      dividerText: "text-muted-foreground",
+                      formFieldLabel: "text-gray-400 font-medium",
+                      formFieldInput: "bg-white/5 border-white/10 text-white focus:ring-blue-500 rounded-xl px-4 h-11",
+                      formButtonPrimary: "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/20 h-11 rounded-xl",
+                      footerActionText: "text-gray-500",
+                      footerActionLink: "text-blue-400 hover:text-blue-300 font-medium",
+                      identityPreviewText: "text-white",
+                      identityPreviewEditButtonIcon: "text-blue-400",
+                    }
+                  }}
+                  routing="path"
+                  path="/auth"
+                  signUpUrl="/auth"
+                />
+              </TabsContent>
+              
+              <TabsContent value="signup" className="mt-0 outline-none">
+                <SignUp 
+                  appearance={{
+                    elements: {
+                      rootBox: "w-full",
+                      card: "bg-transparent border-none shadow-none p-0",
+                      headerTitle: "hidden",
+                      headerSubtitle: "hidden",
+                      socialButtonsBlockButton: "bg-white/5 border-white/10 text-white hover:bg-white/10 transition-colors",
+                      socialButtonsBlockButtonText: "text-white font-medium",
+                      dividerLine: "bg-white/10",
+                      dividerText: "text-muted-foreground",
+                      formFieldLabel: "text-gray-400 font-medium",
+                      formFieldInput: "bg-white/5 border-white/10 text-white focus:ring-blue-500 rounded-xl px-4 h-11",
+                      formButtonPrimary: "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/20 h-11 rounded-xl",
+                      footerActionText: "text-gray-500",
+                      footerActionLink: "text-blue-400 hover:text-blue-300 font-medium",
+                    }
+                  }}
+                  routing="path"
+                  path="/auth"
+                  signInUrl="/auth"
+                />
+              </TabsContent>
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-[#0B0F19] px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-             <div className="space-y-2">
-               <label className="text-sm font-medium text-gray-400">Email Address</label>
-               <input 
-                 type="email" 
-                 placeholder="name@example.com"
-                 className="w-full h-11 bg-white/5 border border-white/10 rounded-xl px-4 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" 
-               />
-             </div>
-             <Button className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white" onClick={() => navigate('/dashboard')}>
-               Sign In
-             </Button>
-          </div>
+          </Tabs>
         </div>
 
-        <p className="text-center text-sm text-gray-500 mt-8">
-          Don't have an account? <a href="#" className="text-blue-400 hover:underline">Sign up for free</a>
+        <p className="text-center text-[10px] text-gray-500 mt-8 tracking-widest uppercase">
+          Secured by Clerk & Lumina Guard
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 }
+

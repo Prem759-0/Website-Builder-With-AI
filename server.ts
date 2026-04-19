@@ -50,8 +50,12 @@ app.get("/api/health", (req, res) => {
 app.get("/api/projects", async (req, res) => {
   if (!db) return res.json([]); 
   const userId = req.headers["x-user-id"];
-  const projects = await db.collection("projects").find({ userId }).sort({ updatedAt: -1 }).toArray();
-  res.json(projects);
+  try {
+    const projects = await db.collection("projects").find({ userId }).sort({ updatedAt: -1 }).toArray();
+    res.json(projects);
+  } catch (e) {
+    res.status(500).json({ error: "Failed to fetch projects" });
+  }
 });
 
 app.post("/api/projects", async (req, res) => {
@@ -59,15 +63,52 @@ app.post("/api/projects", async (req, res) => {
     return res.json({ name: req.body.name, userId: req.body.userId, code: req.body.code, _id: "demo-" + Date.now(), createdAt: new Date(), updatedAt: new Date() });
   }
   const { name, userId, code } = req.body;
-  const project = {
-    name,
-    userId,
-    code: code || "<h1>Hello World</h1>",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-  const result = await db.collection("projects").insertOne(project);
-  res.json({ ...project, _id: result.insertedId });
+
+  try {
+    // Usage Limit Check
+    const count = await db.collection("projects").countDocuments({ userId });
+    const user = await db.collection("users").findOne({ userId });
+    const isPro = user?.isPro || false;
+    const limit = isPro ? 100 : 5;
+
+    if (count >= limit) {
+      return res.status(403).json({ 
+        error: "Usage limit reached", 
+        message: isPro ? "You have reached your project limit." : "Free users are limited to 5 projects. Upgrade to Pro for unlimited access!" 
+      });
+    }
+
+    const project = {
+      name,
+      userId,
+      code: code || "<h1>Hello World</h1>",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const result = await db.collection("projects").insertOne(project);
+    res.json({ ...project, _id: result.insertedId });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to create project" });
+  }
+});
+
+// Analytics API
+app.get("/api/analytics", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  if (!db) return res.json({ projects: 0, generations: 0, storage: "0MB" });
+  
+  try {
+    const projectsCount = await db.collection("projects").countDocuments({ userId });
+    const user = await db.collection("users").findOne({ userId });
+    res.json({
+      projects: projectsCount,
+      generations: user?.generationsCount || 0,
+      storage: (projectsCount * 0.1).toFixed(2) + "MB",
+      plan: user?.isPro ? "Pro" : "Free"
+    });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to fetch analytics" });
+  }
 });
 
 app.put("/api/projects/:id", async (req, res) => {
