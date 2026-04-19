@@ -4,6 +4,7 @@ import { ClerkProvider, SignedIn, SignedOut } from '@clerk/clerk-react';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Auth from './pages/Auth';
+import Pricing from './pages/Pricing';
 import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -34,6 +35,10 @@ const router = createBrowserRouter([
   {
     path: '/auth',
     element: <Auth />,
+  },
+  {
+    path: '/pricing',
+    element: <Pricing />,
   },
   {
     path: '*',

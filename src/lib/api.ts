@@ -12,6 +12,10 @@ export const projectApi = {
   delete: (id: string) => api.delete(`/projects/${id}`),
 };
 
+export const userApi = {
+  getStats: (userId: string) => api.get<any>('/analytics', { headers: { 'x-user-id': userId } }),
+};
+
 export const chatApi = {
   send: (messages: Message[], model?: string) => 
     fetch('/api/chat', {
@@ -22,6 +26,6 @@ export const chatApi = {
 };
 
 export const checkoutApi = {
-  createSession: (priceId: string, successUrl: string, cancelUrl: string) =>
-    api.post<{ url: string }>('/checkout', { priceId, successUrl, cancelUrl }),
+  createSession: (priceId: string, successUrl: string, cancelUrl: string, userId: string) =>
+    api.post<{ url: string }>('/checkout', { priceId, successUrl, cancelUrl, userId }),
 };

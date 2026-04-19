@@ -28,17 +28,18 @@ interface BuilderPanelProps {
   code: string;
   onCodeChange: (newCode: string) => void;
   onImprove?: () => void;
+  onPublish?: () => void;
 }
 
-export function BuilderPanel({ code, onCodeChange, onImprove }: BuilderPanelProps) {
+export const BuilderPanel = React.memo(({ code, onCodeChange, onImprove, onPublish }: BuilderPanelProps) => {
   const [device, setDevice] = useState<Device>('desktop');
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
   const [iframeKey, setIframeKey] = useState(0);
 
   const containerSizes = {
     desktop: 'w-full h-full',
-    tablet: 'w-[768px] h-100% max-h-[85vh]',
-    mobile: 'w-[375px] h-100% max-h-[85vh]',
+    tablet: 'w-[768px] h-full max-h-[85vh]',
+    mobile: 'w-[375px] h-full max-h-[85vh]',
   };
 
   const handleRefresh = () => {
@@ -227,11 +228,21 @@ export function BuilderPanel({ code, onCodeChange, onImprove }: BuilderPanelProp
 
           <Button 
             size="sm" 
+            onClick={onPublish}
+            className="h-9 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl gap-2 font-bold text-xs shadow-lg shadow-emerald-500/10 transition-all active:scale-95"
+          >
+             <Rocket size={14} />
+             Publish
+          </Button>
+
+          <Button 
+            size="sm" 
+            variant="outline"
             onClick={handleDownload}
-            className="h-9 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl gap-2 font-bold text-xs shadow-lg shadow-blue-500/10 transition-all active:scale-95"
+            className="h-9 border-white/10 bg-white/[0.03] hover:bg-white/5 text-white rounded-xl gap-2 font-bold text-xs transition-all active:scale-95"
           >
              <Download size={14} />
-             Download ZIP
+             ZIP
           </Button>
         </div>
       </div>
@@ -349,4 +360,4 @@ export function BuilderPanel({ code, onCodeChange, onImprove }: BuilderPanelProp
       </div>
     </div>
   );
-}
+});

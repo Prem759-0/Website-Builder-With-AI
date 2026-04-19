@@ -10,11 +10,13 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { Project } from '@/types';
+import { Project, UserStats } from '@/types';
 import { UserButton, useUser, useClerk } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
 
 interface SidebarProps {
   projects: Project[];
+  stats: UserStats | null;
   currentProject: Project | null;
   onSelectProject: (p: Project) => void;
   onNewProject: () => void;
@@ -22,18 +24,20 @@ interface SidebarProps {
   setIsCollapsed: (v: boolean) => void;
 }
 
-export function Sidebar({ 
+export const Sidebar = React.memo(({ 
   projects, 
+  stats,
   currentProject, 
   onSelectProject, 
   onNewProject,
   isCollapsed,
   setIsCollapsed
-}: SidebarProps) {
+}: SidebarProps) => {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'projects' | 'files'>('projects');
   const { user } = useUser();
   const { signOut } = useClerk();
+  const navigate = useNavigate();
 
   const filteredProjects = projects.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase())
@@ -234,14 +238,27 @@ export function Sidebar({
       {/* Sidebar Footer */}
       <div className="mt-auto p-4 border-t border-white/5 bg-[#0B0F19]/50 backdrop-blur-md shrink-0">
         {!isCollapsed && (
-          <div className="mb-4 bg-white/[0.03] rounded-2xl p-3 border border-white/5 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-white/5">
-              <Sparkles size={18} className="text-purple-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-               <p className="text-[11px] font-bold text-white uppercase tracking-tight">Pro Plan</p>
-               <p className="text-[10px] text-gray-500 font-medium">Unlimited AI generations</p>
-            </div>
+          <div className="mb-4 space-y-3">
+             <div className="bg-white/[0.03] rounded-2xl p-3 border border-white/5 flex items-center gap-3">
+               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-white/5">
+                 <Sparkles size={18} className="text-purple-400" />
+               </div>
+               <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-white uppercase tracking-tight">{stats?.plan || 'Free'} Plan</p>
+                  <p className="text-[10px] text-gray-500 font-medium">{stats?.generations || 0} / {stats?.isPro ? '1000' : '5'} Gens</p>
+               </div>
+             </div>
+             
+             {!stats?.isPro && (
+               <Button 
+                 variant="outline" 
+                 size="sm" 
+                 onClick={() => navigate('/pricing')}
+                 className="w-full rounded-xl border-blue-500/30 text-blue-400 bg-blue-500/5 hover:bg-blue-500/10 text-[10px] font-black uppercase tracking-widest h-9"
+               >
+                 Upgrade to Pro
+               </Button>
+             )}
           </div>
         )}
         
@@ -288,4 +305,4 @@ export function Sidebar({
       )}
     </motion.aside>
   );
-}
+});

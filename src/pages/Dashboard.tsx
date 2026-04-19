@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { ChatPanel } from '@/components/layout/ChatPanel';
 import { BuilderPanel } from '@/components/layout/BuilderPanel';
-import { LandingPageBuilder } from '@/components/layout/LandingPageBuilder';
+const LandingPageBuilder = lazy(() => import('@/components/layout/LandingPageBuilder').then(mod => ({ default: mod.LandingPageBuilder })));
 import { Project, Message } from '@/types';
-import { projectApi } from '@/lib/api';
+import { projectApi, userApi } from '@/lib/api';
 import { useChat } from '@/hooks/useChat';
 import { toast } from 'sonner';
 import { MessageSquare, ListTree, Menu, Share2, Rocket } from 'lucide-react';
@@ -12,10 +12,12 @@ import { cn } from '@/lib/utils';
 import { useUser } from '@clerk/clerk-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { UserStats } from '@/types';
 
 export default function Dashboard() {
   const { user } = useUser();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [stats, setStats] = useState<UserStats | null>(null);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [mode, setMode] = useState<'chat' | 'structure'>('chat');
@@ -61,6 +63,37 @@ export default function Dashboard() {
     handleSendMessage(prompt);
   }, [currentProject, handleSendMessage]);
 
+  const handlePublish = useCallback(async () => {
+    if (!code) return;
+    toast.loading('Publishing your site...');
+    try {
+      const res = await fetch('/api/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+      const data = await res.json();
+      toast.dismiss();
+      if (data.url) {
+        toast.success('Site published successfully!');
+        window.open(data.url, '_blank');
+      }
+    } catch (e) {
+      toast.dismiss();
+      toast.error('Failed to publish site');
+    }
+  }, [code]);
+
+  const loadStats = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await userApi.getStats(user.id);
+      setStats(res.data);
+    } catch (e) {
+      console.error('Failed to load stats', e);
+    }
+  }, [user]);
+
   const loadProjects = useCallback(async () => {
     if (!user) return;
     try {
@@ -70,10 +103,11 @@ export default function Dashboard() {
         setCurrentProject(res.data[0]);
         setCode(res.data[0].code);
       }
+      loadStats();
     } catch (e) {
       console.error(e);
     }
-  }, [user, currentProject]);
+  }, [user, currentProject, loadStats]);
 
   useEffect(() => {
     loadProjects();
@@ -99,6 +133,7 @@ export default function Dashboard() {
       await projectApi.update(id, data);
     } catch (e) {
       console.error('Update failed', e);
+      toast.error('Failed to sync changes');
     }
   }, []);
 
@@ -108,6 +143,7 @@ export default function Dashboard() {
       <div className="hidden md:block">
         <Sidebar 
           projects={projects}
+          stats={stats}
           currentProject={currentProject}
           onSelectProject={(p) => {
             setCurrentProject(p);
@@ -130,6 +166,7 @@ export default function Dashboard() {
           <SheetContent side="left" className="p-0 w-[280px] bg-[#0B0F19] border-white/5">
             <Sidebar 
               projects={projects}
+              stats={stats}
               currentProject={currentProject}
               onSelectProject={(p) => {
                 setCurrentProject(p);
@@ -189,7 +226,13 @@ export default function Dashboard() {
             />
           ) : (
             <div className="w-[450px] flex-shrink-0 bg-[#0B0F19] border-r border-white/5 animate-in slide-in-from-left duration-300">
-              <LandingPageBuilder />
+              <Suspense fallback={
+                <div className="flex-1 flex items-center justify-center bg-[#0B0F19] border-r border-white/5">
+                  <div className="w-8 h-8 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+                </div>
+              }>
+                <LandingPageBuilder />
+              </Suspense>
             </div>
           )}
 
@@ -202,6 +245,7 @@ export default function Dashboard() {
               }
             }} 
             onImprove={handleImproveDesign}
+            onPublish={handlePublish}
           />
         </div>
       </main>

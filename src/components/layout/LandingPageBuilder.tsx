@@ -16,7 +16,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, Type, Image as ImageIcon, Box, Columns } from 'lucide-react';
+import { GripVertical, Trash2, Type, Image as ImageIcon, Box, Columns, Layout, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -32,7 +32,7 @@ interface SortableItemProps {
   onRemove: (id: string) => void;
 }
 
-function SortableItem({ id, block, onRemove }: SortableItemProps) {
+const SortableItem = React.memo(({ id, block, onRemove }: SortableItemProps) => {
   const {
     attributes,
     listeners,
@@ -80,11 +80,9 @@ function SortableItem({ id, block, onRemove }: SortableItemProps) {
       </Button>
     </div>
   );
-}
+});
 
-import { Layout } from 'lucide-react';
-
-export function LandingPageBuilder() {
+export const LandingPageBuilder = React.memo(() => {
   const [blocks, setBlocks] = useState<Block[]>([
     { id: '1', type: 'hero', content: 'Main Hero Section' },
     { id: '2', type: 'features', content: 'Feature Grid' },
@@ -168,6 +166,6 @@ export function LandingPageBuilder() {
       </div>
     </div>
   );
-}
+});
 
-import { Plus } from 'lucide-react';
+

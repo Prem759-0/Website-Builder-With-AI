@@ -15,3 +15,15 @@ export interface Message {
 export type Device = 'desktop' | 'tablet' | 'mobile';
 
 export type ViewMode = 'preview' | 'code' | 'split';
+
+export interface UserStats {
+  projects: number;
+  generations: number;
+  storage: string;
+  plan: 'Free' | 'Pro';
+  isPro: boolean;
+}
+
+export interface StripeSession {
+  url: string;
+}

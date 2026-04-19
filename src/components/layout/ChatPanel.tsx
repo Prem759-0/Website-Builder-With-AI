@@ -15,7 +15,7 @@ interface ChatPanelProps {
   isLoading: boolean;
 }
 
-export function ChatPanel({ messages, onSendMessage, isLoading }: ChatPanelProps) {
+export const ChatPanel = React.memo(({ messages, onSendMessage, isLoading }: ChatPanelProps) => {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -280,4 +280,4 @@ export function ChatPanel({ messages, onSendMessage, isLoading }: ChatPanelProps
       </div>
     </div>
   );
-}
+});
