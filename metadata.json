@@ -1,0 +1,17 @@
+{
+  "name": "Lumina AI Website Builder",
+  "description": "A high-performance AI-powered website builder that generates full-stack websites from simple prompts, featuring live preview, real-time code editing, and seamless cloud integration.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "AI-powered Generation",
+    "Live Preview",
+    "Real-time Code Editor",
+    "Project Management",
+    "Stripe Payments",
+    "Clerk Authentication"
+  ]
+}
