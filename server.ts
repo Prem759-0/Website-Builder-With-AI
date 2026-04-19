@@ -325,9 +325,6 @@ app.post("/api/checkout", async (req, res) => {
   }
 });
 
-// In-memory store for published sites (use a DB for production)
-const publishedSites = new Map<string, string>();
-
 // Publish API
 app.post("/api/publish", async (req, res) => {
   const { code } = req.body;
@@ -357,14 +354,23 @@ app.post("/api/publish", async (req, res) => {
   }
 
   const id = nanoid(10);
-  publishedSites.set(id, code);
+  if (db) {
+    await db.collection("published_sites").insertOne({ _id: id, code, createdAt: new Date() });
+  }
   
   res.json({ id, url: `${req.protocol}://${req.get('host')}/site/${id}` });
 });
 
 // Serve published sites
-app.get("/site/:id", (req, res) => {
-  const code = publishedSites.get(req.params.id);
+app.get("/site/:id", async (req, res) => {
+  const { id } = req.params;
+  let code: string | null = null;
+
+  if (db) {
+    const site = await db.collection("published_sites").findOne({ _id: id });
+    code = site?.code;
+  }
+
   if (!code) return res.status(404).send("Site not found");
   
   res.setHeader("Content-Type", "text/html");
